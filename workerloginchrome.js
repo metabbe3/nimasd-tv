@@ -44,8 +44,8 @@ let openbrowser = async (proxy) => {
     process.setMaxListeners(999999);
     console.log(proxy);
     const browser = await puppeteer.launch({
-        headless: false,
-        executablePath: 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+        headless: true,
+        executablePath: '/usr/bin/google-chrome',
         args: [`--proxy-server=${proxy}`,
         '--incognito',
         '--disable-background-timer-throttling',
@@ -60,15 +60,15 @@ let openbrowser = async (proxy) => {
 
 
     await page.setViewport({
-        width: getRandomIntInclusive(0, 2040),
-        height: getRandomIntInclusive(0, 2040),
+        width: getRandomIntInclusive(1250, 2040),
+        height: getRandomIntInclusive(1250, 2040),
         deviceScaleFactor: 1,
     });
 
-     await page.authenticate({
-           username: 'nich_1310@yahoo.com',
-           password: 'N!ch0l@5'
-       });
+    //  await page.authenticate({
+    //        username: 'nich_1310@yahoo.com',
+    //        password: 'N!ch0l@5'
+    //    });
   
   
   console.log('a');
@@ -181,13 +181,13 @@ let target = async (page) => {
 
 (async () => {
     try {
-        let numstart=start*5;
+        let numstart=start*2;
         for(let k=start;k<end;k++){  
             for(let i=0;i<2;i++){
         console.log(numstart);
-        const words = no[numstart].split(':');
+        const words = no.no[numstart].split(':');
         const countlogin = 0;
-        const page2 = await openbrowser(proxy[k]);
+        const page2 = await openbrowser(proxy.proxy[k]);
         if ( !fs.existsSync(`./cookies/cookies-${words[0]}.json`)) {
             console.log('dont exist');
             await openlogin(page2);
