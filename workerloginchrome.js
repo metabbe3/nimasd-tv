@@ -202,6 +202,17 @@ let target = async (page) => {
         waitUntil: 'networkidle2',
        
     });
+    
+    await page.waitForSelector('video');
+    console.log('video found try pause');
+    await page.WaitFor(10000);
+    await page.evaluate(()=>
+        document.querySelector('video').pause());
+    console.log('video paused');
+    await page.evaluate(()=>
+        document.querySelector('video').hidden=true);
+    console.log('video hidden');
+   
     // try{
     //     console.log('wait selector error browser');
     //      page.waitForSelector('#nimo-player > div.autoplay-alert > div > span');
