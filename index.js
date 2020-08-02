@@ -5,7 +5,7 @@ const {
 } = require('worker_threads')
 
 var os = require('os'),
-cpuCount = os.cpus().length;
+cpuCount = 20;
 var num = 0;
 
 function getRandomIntInclusive(min, max) {

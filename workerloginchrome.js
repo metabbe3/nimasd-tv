@@ -16,7 +16,7 @@ const {
 } = require('worker_threads');
 const proxy = require('./proxy.js');
 const no = require('./akun.js');
-
+const ua = ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36',''];
 
 
 
@@ -50,64 +50,83 @@ let openbrowser = async (proxy) => {
         '--incognito',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding'
+        '--disable-renderer-backgrounding',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process', // <- this one doesn't works in Windows
+        
         ]
     });
+    console.log('open browser');
     // const context = await browser.createIncognitoBrowserContext();
     let getPages = await browser.pages();
 
     let page = await getPages[0];
-
-
+    console.log('get pages');
     await page.setViewport({
-        width: getRandomIntInclusive(1250, 2040),
-        height: getRandomIntInclusive(1250, 2040),
+        width: 1280,
+        height: 720,
         deviceScaleFactor: 1,
     });
-
+    console.log('set viewport');
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36');
+    console.log('set useragent');
     //  await page.authenticate({
     //        username: 'nich_1310@yahoo.com',
     //        password: 'N!ch0l@5'
     //    });
   
   
-  console.log('a');
+  //console.log('a');
     return page;
 }
 
 let openlogin = async (pages) => {
     while (pages.url() !== 'https://www.nimo.tv/login') {
-        //console.log('open login');
+        console.log('open nimo login page');
         await pages.goto('https://www.nimo.tv/login', {
-            waitLoad: true,
             timeout: 240000,
-            waitNetworkIdle: true // defaults to false
+        waitUntil: 'networkidle0',
         });
 
         if (pages.url() === 'https://www.nimo.tv/login') {
+            console.log('in nimo login page');
             break;
+        
         }
     }
 }
 
 let loginusername = async (pages,country,phonenum,passwords) => {
+    console.log('wait for selector login page');
     await pages.waitForSelector(click_number);
+    console.log('selector found');
     await pages.click(click_number);
+    console.log('click country');
     await pages.waitForSelector(box);
+    console.log('wait for country list');
     await pages.type(box, country);
+    console.log('select country');
     await pages.click(indo);
+    console.log('type phonenumber');
     await pages.type(number, phonenum);
+    console.log('type password');
     await pages.type(password, passwords);
     try {
+        console.log('try login');
         await Promise.all([
             pages.click(login),
             pages.waitForNavigation({
-                 waitLoad: true, 
-                timeout: 60000,
-                 waitNetworkIdle: true // defaults to false
+                timeout: 240000,
+                waitUntil: 'networkidle2',
+               
             }),
         ]);
-
+      
     } catch (e) {
         
     }
@@ -118,25 +137,42 @@ let homepage = async (page,phonenum) => {
     if ( fs.existsSync(`./cookies/cookies-${phonenum}.json`)) {
         console.log('please wait fast login');
     const cookiesString = fs.readFileSync(`./cookies/cookies-${phonenum}.json`);
+    console.log('read cookies');
   //  console.log(cookiesString);
     const cookiess = JSON.parse(cookiesString);
+    console.log('parse cookies');
     await page.setCookie(...cookiess);
+    console.log('set cookies');
     }
+
     await page.setRequestInterception(true)
     await page.on('request', request => {
-        if (request.resourceType() === 'image')
+        const url = request.url();
+    const filters = [
+        'livefyre',
+        'moatad',
+        'analytics',
+        'controltag',
+        'chartbeat',
+    ];
+    const shouldAbort = filters.some((urlPart) => url.includes(urlPart));
+        if (shouldAbort || request.resourceType() === 'image' || request.resourceType() === 'stylesheet')
             request.abort();
         else
             request.continue();
     });
+    console.log('go to landing page');
     await page.goto('https://www.nimo.tv/', {
-        waitLoad: true,
+     
         timeout: 240000,
-        waitNetworkIdle: true // defaults to false
+        waitUntil: 'domcontentloaded',
+       
     });
     console.log('landing page success');
     if ( !fs.existsSync(`./cookies/cookies-${phonenum}.json`)) {
+        console.log('cookies not exist');
     var cookies = await page._client.send('Network.getAllCookies');
+
     cookies = cookies.cookies.map( cookie => {
       cookie.expiresUTC = new Date(cookie.expires * 1000);
 
@@ -146,10 +182,10 @@ let homepage = async (page,phonenum) => {
     var persistantCookies = cookies.filter(c => {
       return !c.session;
     });
-
+    console.log('write cookies');
     fs.writeFile(`./cookies/cookies-${phonenum}.json`, JSON.stringify(persistantCookies, null, 2), function (err) {
         if (err) return console.log(err);
-        console.log('success login');
+        console.log('success login + write cookies');
       });
     }
     // console.log({
@@ -159,20 +195,60 @@ let homepage = async (page,phonenum) => {
 }
 
 let target = async (page) => {
-    console.log('b');
+    let checkPlay =0;
+    console.log('go to nimo streamer link');
     await page.goto(link, {
-        waitLoad: true,
         timeout: 240000,
-        waitNetworkIdle: true // defaults to false
+        waitUntil: 'networkidle2',
+       
     });
-    try{
-        await page.waitForSelector('#nimo-player > div.autoplay-alert > div > span');
-        await page.evaluate(()=>
-        document.querySelector('#nimo-player > div.autoplay-alert > div > span').click());
-        await page.evaluate(()=>
-        document.querySelector('#nimo-player > div.controls > div:nth-child(1) > div.play-control.control-item > i').click());
+    // try{
+    //     console.log('wait selector error browser');
+    //      page.waitForSelector('#nimo-player > div.autoplay-alert > div > span');
+         
+    //     await page.evaluate(()=>
+    //     document.querySelector('#nimo-player > div.autoplay-alert > div > span').click());
+    //         await page.waitForSelector('#nimo-player > div.controls > div:nth-child(1) > div.play-control.control-item > i');
+    //         console.log('wait play');
+    //     for(let i=0;i<10;i++){
+    //         await page.evaluate(()=>
+    //     document.querySelector('#nimo-player > div.controls > div:nth-child(1) > div.play-control.control-item > i').click());
+    //     console.log('play');
+    //     await page.waitFor(15000)
+    //     if(await page.$('#nimo-player > div.controls > div:nth-child(1) > div.play-control.playing.control-item') != null){
+    //         i=10;
+    //     }
+    //     }
         
-    }catch(e){}
+        
+    //     // console.log('set lowest res');
+      
+    // }catch(e){}
+    // for(let i=0;i<2;i++){
+    //     await page.waitFor(30000);
+    //     if(await page.$('#nimo-player > div.controls > div:nth-child(1) > div.play-control.playing.control-item') == null && checkPlay != 0){
+    //         console.log(await page.$('#nimo-player > div.controls > div:nth-child(1) > div.play-control.playing.control-item'));
+    //         console.log('paused');
+    //         i=2;
+    //     }else if(await page.$('#nimo-player > div.controls > div:nth-child(1) > div.play-control.playing.control-item') == null && checkPlay == 0){
+    //         console.log('try play again');
+    //         await page.evaluate(()=>
+    //         document.querySelector('#nimo-player > div.controls > div:nth-child(1) > div.play-control.control-item > i').click());
+    //         checkPlay=1;
+    //         i--;
+    //     }else if(await page.$('#nimo-player > div.controls > div:nth-child(1) > div.play-control.playing.control-item') != null && checkPlay == 0){
+    //         console.log('not paused');
+    //         await page.evaluate(()=>
+    //     document.querySelector('#nimo-player > div.controls > div:nth-child(1) > div.play-control.playing.control-item').click());
+    //     i--;
+    //     }else if(await page.$('#nimo-player > div.controls > div:nth-child(1) > div.play-control.playing.control-item') != null && checkPlay == 1){
+    //         console.log('not paused');
+    //         await page.evaluate(()=>
+    //     document.querySelector('#nimo-player > div.controls > div:nth-child(1) > div.play-control.playing.control-item').click());
+    //     i--;
+    //     }
+    // }
+  
     //browser.disconnect();
     process.removeAllListeners();
     console.log('Process end.');
@@ -209,8 +285,9 @@ let target = async (page) => {
           }
            
         await homepage(page2,words[0]);
-        console.log('a');
+      //  console.log('a');
         await target(page2);
+       
         console.log(i);
         numstart++;
         
