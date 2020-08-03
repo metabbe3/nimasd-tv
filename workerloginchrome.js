@@ -205,7 +205,7 @@ let target = async (page) => {
     
     await page.waitForSelector('video');
     console.log('video found try pause');
-    await page.WaitFor(15000);
+    //await page.WaitFor(15000);
     await page.evaluate(()=>
         document.querySelector('video').pause());
     console.log('video paused');
